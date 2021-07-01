@@ -21,10 +21,12 @@
     "@hapi/hapi": "^20.1.5",
     "dotenv": "^10.0.0",
     "joi": "^17.4.0",
+    "nanoid": "^3.1.23",
     "node-pg-migrate": "^5.10.0",
     "pg": "^8.6.0"
   },
   "devDependencies": {
+    "babel-eslint": "^10.1.0",
     "eslint": "^7.29.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.23.4",

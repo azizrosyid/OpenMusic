@@ -12,7 +12,10 @@ exports.up = (pgm) => {
       type: 'TEXT',
       notNull: true,
     },
-
+    year: {
+      type: 'INTEGER',
+      notNull: true,
+    },
     performer: {
       type: 'TEXT',
       notNull: true,
