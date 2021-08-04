@@ -14,10 +14,9 @@ class SongsService {
   }) {
     const id = `song-${nanoid(16)}`;
     const insertedAt = new Date().toISOString();
-    const updatedAt = insertedAt;
 
     const query = {
-      text: 'INSERT INTO songs VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+      text: 'INSERT INTO songs VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING id',
       values: [
         id,
         title,
@@ -26,7 +25,6 @@ class SongsService {
         genre,
         duration,
         insertedAt,
-        updatedAt,
       ],
     };
 
@@ -41,7 +39,7 @@ class SongsService {
 
   async getSongs() {
     const query = {
-      text: 'SELECT * FROM songs',
+      text: 'SELECT id, title, performer FROM songs',
     };
     const result = await this._pool.query(query);
     return result.rows.map(mapDBToModel);

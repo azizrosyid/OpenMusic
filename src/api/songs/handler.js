@@ -55,22 +55,20 @@ class SongsHandler {
   };
 
   getSongsHandler = async (request, h) => {
-    const songsTotal = await this._service.getSongs();
-    // send only id, title, performer
-    const songs = songsTotal.map((song) => ({
-      id: song.id,
-      title: song.title,
-      performer: song.performer,
-    }));
+    try {
+      const songs = await this._service.getSongs();
 
-    const response = h.response({
-      status: 'success',
-      data: {
-        songs,
-      },
-    });
-    response.code(200);
-    return response;
+      const response = h.response({
+        status: 'success',
+        data: {
+          songs,
+        },
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      return this.handleError(h, error);
+    }
   };
 
   getSongByIdHandler = async (request, h) => {
