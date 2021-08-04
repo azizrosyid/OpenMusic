@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const SongsPayloadSchema = Joi.object({
+const SongPayloadSchema = Joi.object({
   title: Joi.string().required(),
   year: Joi.number().min(1900).max(new Date().getFullYear()).required(),
   performer: Joi.string().required(),
@@ -9,4 +9,4 @@ const SongsPayloadSchema = Joi.object({
 
 });
 
-module.exports = { SongsPayloadSchema };
+module.exports = { SongPayloadSchema };
