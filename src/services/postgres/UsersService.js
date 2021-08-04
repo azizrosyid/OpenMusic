@@ -44,8 +44,8 @@ class UsersService {
 
   async verifyUserCredentials(username, password) {
     const query = {
-      text: 'SELECT * FROM users WHERE username = $1 AND password = $2 LIMIT 1',
-      values: [username, password],
+      text: 'SELECT * FROM users WHERE username = $1 LIMIT 1',
+      values: [username],
     };
     const result = await this._pool.query(query);
     if (result.rows.length === 0) {
