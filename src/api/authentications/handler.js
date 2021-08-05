@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const ClientError = require('../../exceptions/ClientError');
 
 class AuthenticationsHandler {
