@@ -2,23 +2,37 @@ const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 const InvariantError = require('../../exceptions/InvariantError');
-const NotFoundError = require('../../exceptions/NotFoundError');
 
 class PlaylistsService {
-  constructor() {
+  constructor(collaborationsService) {
     this._pool = new Pool();
+    this._collaborationsService = collaborationsService;
   }
 
-  verifyPlaylistAccess = async (playlistId, owner) => {
+  verifyPlaylistOwner = async (playlistId, owner) => {
     const query = {
       text: 'SELECT * FROM playlists WHERE id = $1 AND owner = $2',
       values: [playlistId, owner],
     };
     const result = await this._pool.query(query);
-    if (result.rows.length === 0) {
-      throw new AuthorizationError('You are not authorized to access this playlist.');
+    if (result.rowCount === 0) {
+      throw new AuthorizationError(
+        `The playlist with id ${playlistId} is not owned by ${owner}`,
+      );
     }
-  }
+  };
+
+  verifyPlaylistAccess = async (playlistId, owner) => {
+    try {
+      await this.verifyPlaylistOwner(playlistId, owner);
+    } catch (error) {
+      try {
+        await this._collaborationsService.verifyCollaborator(playlistId, owner);
+      } catch {
+        throw error;
+      }
+    }
+  };
 
   addPlaylist = async ({ name, owner }) => {
     const id = `playlist-${nanoid(16)}`;
@@ -34,7 +48,9 @@ class PlaylistsService {
       }
       return result.rows[0].id;
     } catch (error) {
-      if (error.message.includes('duplicate key value violates unique constraint')) {
+      if (
+        error.message.includes('duplicate key value violates unique constraint')
+      ) {
         throw new InvariantError(`Playlist duplicate name ${name}`);
       }
       throw error;
@@ -43,14 +59,15 @@ class PlaylistsService {
 
   getPlaylistsByOwner = async (owner) => {
     const query = {
-      text: 'SELECT playlists.id, playlists.name, users.username FROM playlists INNER JOIN users ON playlists.owner = users.id WHERE playlists.owner = $1',
+      text: `SELECT playlists.id, playlists.name, users.username 
+      FROM playlists JOIN users ON playlists.owner = users.id 
+      LEFT JOIN collaborations ON playlists.id = collaborations.playlist_id
+      WHERE playlists.owner = $1 OR collaborations.user_id = $1`,
       values: [owner],
     };
 
     const result = await this._pool.query(query);
-    if (result.rows.length === 0) {
-      throw new NotFoundError(`Playlists for user ${owner} could not be found`);
-    }
+
     return result.rows;
   };
 
@@ -62,9 +79,11 @@ class PlaylistsService {
 
     const result = await this._pool.query(query);
     if (result.rowCount === 0) {
-      throw new AuthorizationError(`Playlist ${playlistId} could not be deleted`);
+      throw new AuthorizationError(
+        `Playlist ${playlistId} could not be deleted`,
+      );
     }
-  }
+  };
 }
 
 module.exports = PlaylistsService;

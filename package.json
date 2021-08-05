@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start-dev": "nodemon ./src/server.js",
-    "migrate": "node-pg-migrate"
+    "migrate": "node-pg-migrate",
+    "reset-db": "npm run migrate down 10 && npm run migrate up"
   },
   "repository": {
     "type": "git",

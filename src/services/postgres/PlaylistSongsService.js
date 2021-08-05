@@ -29,8 +29,9 @@ class PlaylistSongsService {
     const query = {
       text: `SELECT songs.id, songs.title, songs.performer FROM playlistsongs 
           JOIN playlists ON playlistsongs.playlist_id = playlists.id 
+          LEFT JOIN collaborations ON playlists.id = collaborations.playlist_id
           JOIN songs ON playlistsongs.song_id = songs.id
-          WHERE playlists.id = $1 AND playlists.owner = $2`,
+          WHERE playlists.id = $1 AND (playlists.owner = $2 OR collaborations.user_id = $2)`,
       values: [playlistId, creadentialId],
     };
     const result = await this.pool.query(query);
