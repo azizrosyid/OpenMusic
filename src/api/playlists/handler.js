@@ -88,7 +88,6 @@ class PlaylistsHandler {
         message: 'Playlist deleted successfully',
       });
     } catch (error) {
-      console.error(error);
       if (error instanceof ClientError) {
         const response = h.response({
           status: 'fail',

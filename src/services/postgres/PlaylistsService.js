@@ -9,6 +9,17 @@ class PlaylistsService {
     this._pool = new Pool();
   }
 
+  verifyPlaylistAccess = async (playlistId, owner) => {
+    const query = {
+      text: 'SELECT * FROM playlists WHERE id = $1 AND owner = $2',
+      values: [playlistId, owner],
+    };
+    const result = await this._pool.query(query);
+    if (result.rows.length === 0) {
+      throw new AuthorizationError('You are not authorized to access this playlist.');
+    }
+  }
+
   addPlaylist = async ({ name, owner }) => {
     const id = `playlist-${nanoid(16)}`;
     const query = {
