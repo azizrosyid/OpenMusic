@@ -4,9 +4,10 @@ const AuthorizationError = require('../../exceptions/AuthorizationError');
 const InvariantError = require('../../exceptions/InvariantError');
 
 class PlaylistsService {
-  constructor(collaborationsService) {
+  constructor(collaborationsService, cacheService) {
     this._pool = new Pool();
     this._collaborationsService = collaborationsService;
+    this._cacheService = cacheService;
   }
 
   verifyPlaylistOwner = async (playlistId, owner) => {
@@ -37,7 +38,7 @@ class PlaylistsService {
   addPlaylist = async ({ name, owner }) => {
     const id = `playlist-${nanoid(16)}`;
     const query = {
-      text: 'INSERT INTO playlists (id, name, owner) VALUES ($1, $2, $3) RETURNING id',
+      text: 'INSERT INTO playlists (id, name, owner) VALUES ($1, $2, $3) RETURNING id, owner',
       values: [id, name, owner],
     };
 
@@ -46,6 +47,7 @@ class PlaylistsService {
       if (result.rows.length === 0) {
         throw new InvariantError(`Playlist ${name} could not be created`);
       }
+      await this._cacheService.delete(`playlist-${owner}`);
       return result.rows[0].id;
     } catch (error) {
       if (
@@ -67,7 +69,7 @@ class PlaylistsService {
     };
 
     const result = await this._pool.query(query);
-
+    await this._cacheService.set(`playlist-${owner}`, JSON.stringify(result.rows));
     return result.rows;
   };
 
@@ -76,6 +78,9 @@ class PlaylistsService {
       text: 'DELETE FROM playlists WHERE id = $1 AND owner = $2',
       values: [playlistId, owner],
     };
+
+    await this._cacheService.delete(`playlist-${owner}`);
+    await this._cacheService.delete(`playlistSong-${playlistId}`);
 
     const result = await this._pool.query(query);
     if (result.rowCount === 0) {

@@ -4,11 +4,12 @@ const AuthorizationError = require('../../exceptions/AuthorizationError');
 const InvariantError = require('../../exceptions/InvariantError');
 
 class CollaborationsService {
-  constructor() {
+  constructor(cacheService) {
     this._pool = new Pool();
+    this._cacheService = cacheService;
   }
 
-  addCollaboration= async ({ playlistId, userId }) => {
+  addCollaboration = async ({ playlistId, userId }) => {
     const id = `collab-${nanoid(16)}`;
     const query = {
       text: 'INSERT INTO collaborations (id, playlist_id, user_id) VALUES ($1, $2, $3) RETURNING id',
@@ -19,8 +20,9 @@ class CollaborationsService {
     if (result.rowCount === 0) {
       throw new InvariantError('Collaboration not added');
     }
+    await this._cacheService.delete(`playlist-${userId}`);
     return result.rows[0].id;
-  }
+  };
 
   deleteCollaboration = async ({ playlistId, userId }) => {
     const query = {
@@ -31,7 +33,8 @@ class CollaborationsService {
     if (result.rowCount === 0) {
       throw new InvariantError('Collaboration not deleted');
     }
-  }
+    await this._cacheService.delete(`playlist-${userId}`);
+  };
 
   verifyCollaborator = async (playlistId, userId) => {
     const query = {
@@ -41,8 +44,10 @@ class CollaborationsService {
 
     const result = await this._pool.query(query);
     if (result.rows.length === 0) {
-      throw new AuthorizationError('You are not authorized to access this playlist.');
+      throw new AuthorizationError(
+        'You are not authorized to access this playlist.',
+      );
     }
-  }
+  };
 }
 module.exports = CollaborationsService;

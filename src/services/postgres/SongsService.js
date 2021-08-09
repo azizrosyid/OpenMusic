@@ -5,8 +5,9 @@ const NotFoundError = require('../../exceptions/NotFoundError');
 const { mapDBToModel } = require('../../utils');
 
 class SongsService {
-  constructor() {
+  constructor(cacheService) {
     this._pool = new Pool();
+    this._cacheService = cacheService;
   }
 
   async addSong({
@@ -17,15 +18,7 @@ class SongsService {
 
     const query = {
       text: 'INSERT INTO songs VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING id',
-      values: [
-        id,
-        title,
-        year,
-        performer,
-        genre,
-        duration,
-        insertedAt,
-      ],
+      values: [id, title, year, performer, genre, duration, insertedAt],
     };
 
     const result = await this._pool.query(query);
@@ -34,16 +27,26 @@ class SongsService {
       throw new InvariantError('Failed add songs to database.');
     }
 
+    await this._cacheService.delete('songsAll');
+
     return result.rows[0].id;
   }
 
   async getSongs() {
-    const query = {
-      text: `SELECT songs.id, songs.title, songs.performer,pictures.picture_url FROM songs
-            LEFT JOIN pictures ON songs.picture_id = pictures.id`,
-    };
-    const result = await this._pool.query(query);
-    return result.rows.map(mapDBToModel);
+    try {
+      const result = this._cacheService.get('songsAll');
+      return JSON.parse(result);
+    } catch (error) {
+      const query = {
+        text: `SELECT songs.id, songs.title, songs.performer,pictures.picture_url FROM songs
+              LEFT JOIN pictures ON songs.picture_id = pictures.id`,
+      };
+
+      const result = await this._pool.query(query);
+      const mappedResult = result.rows.map(mapDBToModel);
+      await this._cacheService.set('songsAll', JSON.stringify(mappedResult));
+      return mappedResult;
+    }
   }
 
   async getSongById(id) {
@@ -75,6 +78,10 @@ class SongsService {
     if (result.rowCount === 0) {
       throw new NotFoundError('Id Song Not Found!');
     }
+    (await this.getAllPlaylistIdBySongId(id)).forEach(
+      async (playlistId) => this._cacheService.delete(`playlistSong-${playlistId}`),
+    );
+    await this._cacheService.delete('songsAll');
   }
 
   async deleteSongById(id) {
@@ -88,6 +95,10 @@ class SongsService {
     if (result.rowCount === 0) {
       throw new NotFoundError('Id Song Not Found!');
     }
+    (await this.getAllPlaylistIdBySongId(id)).forEach(
+      async (playlistId) => this._cacheService.delete(`playlistSong-${playlistId}`),
+    );
+    await this._cacheService.delete('songsAll');
   }
 
   async updatePictureId(id, pictureId) {
@@ -101,6 +112,19 @@ class SongsService {
     if (result.rowCount === 0) {
       throw new NotFoundError('Id Song Not Found!');
     }
+    (await this.getAllPlaylistIdBySongId(id)).forEach(
+      async (playlistId) => this._cacheService.delete(`playlistSong-${playlistId}`),
+    );
+    await this._cacheService.delete('songsAll');
+  }
+
+  async getAllPlaylistIdBySongId(songId) {
+    const query = {
+      text: 'SELECT playlist_id FROM playlistsongs WHERE song_id=$1',
+      values: [songId],
+    };
+    const result = await this._pool.query(query);
+    return result.rows;
   }
 }
 module.exports = SongsService;

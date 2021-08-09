@@ -44,13 +44,17 @@ const StorageService = require('./services/storage/StorageService');
 const UploadsValidator = require('./validator/uploads');
 const PicturesService = require('./services/postgres/PicturesService');
 
+// cache
+const CacheService = require('./services/redis/CacheService');
+
 const start = async () => {
-  const collaborationsService = new CollaborationsService();
-  const songsService = new SongsService();
+  const cacheService = new CacheService();
+  const collaborationsService = new CollaborationsService(cacheService);
+  const songsService = new SongsService(cacheService);
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
-  const playlistsService = new PlaylistsService(collaborationsService);
-  const playlistSongsService = new PlaylistSongsService();
+  const playlistsService = new PlaylistsService(collaborationsService, cacheService);
+  const playlistSongsService = new PlaylistSongsService(cacheService);
   const storageService = new StorageService(path.resolve(__dirname, 'api/uploads/files'));
   const picturesService = new PicturesService();
 
