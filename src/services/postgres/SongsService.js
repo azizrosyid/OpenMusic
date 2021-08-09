@@ -39,7 +39,8 @@ class SongsService {
 
   async getSongs() {
     const query = {
-      text: 'SELECT id, title, performer FROM songs',
+      text: `SELECT songs.id, songs.title, songs.performer,pictures.picture_url FROM songs
+            LEFT JOIN pictures ON songs.picture_id = pictures.id`,
     };
     const result = await this._pool.query(query);
     return result.rows.map(mapDBToModel);
@@ -47,7 +48,9 @@ class SongsService {
 
   async getSongById(id) {
     const query = {
-      text: 'SELECT * FROM songs WHERE id = $1',
+      text: `SELECT song.*, pictures.picture_url 
+          FROM (SELECT * FROM songs WHERE id= $1) AS song 
+          LEFT JOIN pictures ON song.picture_id = pictures.id`,
       values: [id],
     };
     const result = await this._pool.query(query);
@@ -78,6 +81,19 @@ class SongsService {
     const query = {
       text: 'DELETE FROM songs WHERE id = $1 RETURNING id',
       values: [id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError('Id Song Not Found!');
+    }
+  }
+
+  async updatePictureId(id, pictureId) {
+    const query = {
+      text: 'UPDATE songs SET picture_id = $1 WHERE id = $2 RETURNING id',
+      values: [pictureId, id],
     };
 
     const result = await this._pool.query(query);
