@@ -47,6 +47,11 @@ const PicturesService = require('./services/postgres/PicturesService');
 // cache
 const CacheService = require('./services/redis/CacheService');
 
+// plugin exports
+const _exports = require('./api/exports');
+const ExportsService = require('./services/rabbitmq/ProducerService');
+const ExportsValidator = require('./validator/exports');
+
 const start = async () => {
   const cacheService = new CacheService();
   const collaborationsService = new CollaborationsService(cacheService);
@@ -145,6 +150,14 @@ const start = async () => {
         storageService,
         songsService,
         picturesService,
+      },
+    },
+    {
+      plugin: _exports,
+      options: {
+        validator: ExportsValidator,
+        exportsService: ExportsService,
+        playlistsService,
       },
     },
   ]);
